@@ -14,9 +14,57 @@ datasource db {
 }
 
 
-model Task {
-  id          Int      @id @default(autoincrement())
-  title       String
-  completed   Boolean? @default(false)
-  @@map("tasks")
+model User {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  password  String
+  name      String
+  role      String     @default("USER")
+
+  listings  Listing[]  @relation("SellerListings")
+  bids      Bid[]      @relation("BidderBids")
+  watchlist Watchlist[]
+}
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  listings Listing[]
+}
+
+model Listing {
+  id            Int        @id @default(autoincrement())
+  title         String
+  startingPrice Decimal
+  status        String     @default("OPEN")
+  sellerId      Int
+  categoryId    Int
+  createdAt     DateTime   @default(now())
+
+  seller        User       @relation("SellerListings", fields: [sellerId], references: [id])
+  category      Category   @relation(fields: [categoryId], references: [id])
+  bids          Bid[]
+  watchlist     Watchlist[]
+}
+
+model Bid {
+  id        Int      @id @default(autoincrement())
+  amount    Decimal
+  status    String   @default("PENDING")
+  bidderId  Int
+  listingId Int
+  createdAt DateTime @default(now())
+
+  bidder    User     @relation("BidderBids", fields: [bidderId], references: [id])
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+}
+
+model Watchlist {
+  userId    Int
+  listingId Int
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([userId, listingId])
 }
