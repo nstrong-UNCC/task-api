@@ -1,3 +1,4 @@
+
 import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
@@ -5,14 +6,17 @@ import swaggerUi from 'swagger-ui-express';
 import yaml from 'js-yaml';
 import fs from 'fs';
 import taskRoutes from './routes/taskRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 app.use(cors());
 app.use(express.json());
 app.use(morgan('tiny'));
 
 let specs;
+
 try {
   specs = yaml.load(fs.readFileSync('./docs/openapi.yaml', 'utf8'));
 } catch (error) {
@@ -21,21 +25,29 @@ try {
 }
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/tasks', taskRoutes);
 
-app.use((req, res, next) => {
-  res.status(404).json({ error: 'Not found' });
+
+app.use((req, res) => {
+  res.status(404).json({
+    errors: ['Not found'],
+  });
 });
+
 
 app.use((err, req, res, next) => {
   console.error(err);
+
   const status = err.status || 500;
+
   res.status(status).json({
-    error: err.message || 'Internal Server Error',
+    errors: [err.status ? err.message : 'Internal Server Error'],
   });
 });
 
