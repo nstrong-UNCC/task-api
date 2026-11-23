@@ -1,6 +1,8 @@
 
 import express from 'express';
 import * as listingController from '../controllers/listingController.js';
+import * as bidController from '../controllers/bidController.js';
+
 
 import {
   validateListingId,
@@ -8,6 +10,11 @@ import {
   validateCreateListing,
   validateUpdateListing,
 } from '../middleware/validateListing.js';
+
+import {
+  validateBidListingId,
+  validateCreateBid,
+} from '../middleware/validateBid.js';
 
 import { checkValidationResults } from '../middleware/handleValidationErrors.js';
 
@@ -61,6 +68,17 @@ router.delete(
   validateListingId,
   checkValidationResults,
   listingController.deleteListing
+);
+
+// Place a bid on a listing (USER only)
+router.post(
+  '/:id/bids',
+  authenticate,
+  authorize('USER'),
+  validateBidListingId,
+  validateCreateBid,
+  checkValidationResults,
+  bidController.placeBid
 );
 
 export default router;
