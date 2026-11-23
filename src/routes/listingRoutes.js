@@ -81,4 +81,13 @@ router.post(
   bidController.placeBid
 );
 
+// Close a listing and process bids (Owner only)
+router.patch(
+  '/:id/status',
+  authenticate,
+  validateListingId,
+  checkValidationResults,
+  listingController.closeListing
+);
+
 export default router;

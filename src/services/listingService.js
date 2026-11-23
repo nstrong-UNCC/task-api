@@ -99,3 +99,28 @@ export async function deleteListing(id, user) {
 
   await listingRepo.remove(id);
 }
+
+export async function closeListing(id, user) {
+  const listing = await listingRepo.findById(id);
+
+  if (!listing) {
+    throw createError('Listing not found', 404);
+  }
+
+  // Only the seller can close the listing
+  if (listing.sellerId !== user.id) {
+    throw createError('You can only close your own listings', 403);
+  }
+
+  // Listing must be OPEN
+  if (listing.status !== 'OPEN') {
+    throw createError('Listing is already closed', 400);
+  }
+
+  // A listing must have at least one bid
+  if (listing.bids.length === 0) {
+    throw createError('Cannot close a listing without bids', 400);
+  }
+
+  return listingRepo.closeListing(id);
+}

@@ -75,3 +75,16 @@ export async function deleteListing(req, res, next) {
     next(error);
   }
 }
+
+export async function closeListing(req, res, next) {
+  try {
+    const listing = await listingService.closeListing(
+      Number(req.params.id),
+      req.user
+    );
+
+    res.status(200).json(listing);
+  } catch (error) {
+    next(error);
+  }
+}
