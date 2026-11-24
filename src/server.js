@@ -14,7 +14,6 @@ import watchlistRoutes from './routes/watchlistRoutes.js';
 
 // Initialize Express application
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // Global Middleware
 app.use(cors());
@@ -62,7 +61,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start Server
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+export default app;
+
+const isMainModule = process.argv[1] &&
+  import.meta.url === new URL(`file://${process.argv[1]}`).href;
+
+if (isMainModule) {
+  const PORT = process.env.PORT || 3000;
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
