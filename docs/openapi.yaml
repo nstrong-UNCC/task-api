@@ -1,100 +1,652 @@
+
 openapi: 3.1.0
 info:
-  title: Task API
+  title: Online Bidding System API
   version: 1.0.0
+  description: REST API for an online bidding system.
+
 servers:
   - url: http://localhost:3000
-    description: Local development servers
+    description: Local development server
+
 tags:
-  - name: Tasks
-    description: Task-related endpoints
-  - name: Monitoring
-    description: Operational endpoints, such as health checks
+  - name: Authentication
+  - name: Categories
+  - name: Listings
+  - name: Bids
+  - name: Watchlist
+
 paths:
-  /tasks:
-    get:
-      summary: List all tasks
-      tags:
-        - Tasks
-      parameters:
-        - name: completed
-          in: query
-          required: false
-          description: Filter tasks by completion status. Omit to return all tasks.
-          schema:
-            type: boolean
-          example: true
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Task'
+  /api/auth/signup:
     post:
-      summary: Create a new task
-      tags:
-        - Tasks
+      tags: [Authentication]
+      summary: Register a new user
+      security: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Task'
+              $ref: '#/components/schemas/SignupRequest'
       responses:
         '201':
-          description: Task created successfully
+          description: User created
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Task'
+                $ref: '#/components/schemas/User'
         '400':
-          description: Bad request due to invalid data
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                  details:
-                    type: array
-                    items:
-                      type: string
-                example:
-                  errors:
-                    - 'Title must be at least 3 characters'
-  /health:
-    get:
-      summary: Health Check
-      description: Returns the current status of the API. Used by Render to verify that the service is running.
-      tags:
-        - Monitoring
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/auth/login:
+    post:
+      tags: [Authentication]
+      summary: Log in and receive an access token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: API is running successfully
+          description: Login successful
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  status:
+                  accessToken:
                     type: string
-                    example: ok
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/categories:
+    get:
+      tags: [Categories]
+      summary: Get all categories
+      security: []
+      responses:
+        '200':
+          description: Categories retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+
+    post:
+      tags: [Categories]
+      summary: Create a category (ADMIN only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/categories/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Categories]
+      summary: Get a category by ID
+      security: []
+      responses:
+        '200':
+          description: Category retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Categories]
+      summary: Update a category (ADMIN only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryRequest'
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/listings:
+    get:
+      tags: [Listings]
+      summary: Get all listings
+      security: []
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [OPEN, SOLD]
+        - name: categoryId
+          in: query
+          schema:
+            type: integer
+        - name: sortBy
+          in: query
+          schema:
+            type: string
+            enum: [createdAt, startingPrice]
+            default: createdAt
+        - name: order
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 10
+      responses:
+        '200':
+          description: Listings retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Listing'
+
+    post:
+      tags: [Listings]
+      summary: Create a listing (USER only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListingRequest'
+      responses:
+        '201':
+          description: Listing created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/listings/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      tags: [Listings]
+      summary: Get a listing by ID
+      security: []
+      responses:
+        '200':
+          description: Listing retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags: [Listings]
+      summary: Update your own OPEN listing
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ListingUpdateRequest'
+      responses:
+        '200':
+          description: Listing updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Listings]
+      summary: Delete an OPEN listing (Owner or ADMIN)
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Listing deleted
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/listings/{id}/bids:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      tags: [Bids]
+      summary: Place a bid on a listing (USER only)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BidRequest'
+      responses:
+        '201':
+          description: Bid placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Bid'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/listings/{id}/status:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    patch:
+      tags: [Listings]
+      summary: Close your listing and process its bids
+      description: The listing owner can close an OPEN listing if it has at least one bid. The highest bid is accepted and all other bids are rejected.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Listing closed and bids processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/watchlist:
+    get:
+      tags: [Watchlist]
+      summary: Get the authenticated user's watchlist
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Watchlist retrieved
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/WatchlistEntry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/watchlist/{listingId}:
+    parameters:
+      - name: listingId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    post:
+      tags: [Watchlist]
+      summary: Add a listing to the watchlist
+      security:
+        - bearerAuth: []
+      responses:
+        '201':
+          description: Listing added to watchlist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchlistEntry'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+    delete:
+      tags: [Watchlist]
+      summary: Remove a listing from the watchlist
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Listing removed from watchlist
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Permission denied
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
   schemas:
-    Task:
+    Error:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            type: string
+      example:
+        errors:
+          - Invalid request
+
+    SignupRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: Password123!
+        name:
+          type: string
+          example: John Doe
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          example: Password123!
+
+    User:
       type: object
       properties:
         id:
-          readOnly: true
           type: integer
           example: 1
+        email:
+          type: string
+          example: user@example.com
+        name:
+          type: string
+          example: John Doe
+        role:
+          type: string
+          enum: [USER, ADMIN]
+          example: USER
+
+    CategoryRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          example: Electronics
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Electronics
+
+    ListingRequest:
+      type: object
+      required: [title, startingPrice, categoryId]
+      properties:
         title:
           type: string
-          example: Buy groceries
-        completed:
-          type: boolean
-          example: false
+          example: Wireless Headphones
+        startingPrice:
+          type: number
+          exclusiveMinimum: 0
+          example: 100
+        categoryId:
+          type: integer
+          example: 1
+
+    ListingUpdateRequest:
+      type: object
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          example: Updated Headphones
+        startingPrice:
+          type: number
+          exclusiveMinimum: 0
+          example: 125
+        categoryId:
+          type: integer
+          example: 1
+
+    Listing:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        title:
+          type: string
+          example: Wireless Headphones
+        startingPrice:
+          type: string
+          example: '100'
+        status:
+          type: string
+          enum: [OPEN, SOLD]
+          example: OPEN
+        sellerId:
+          type: integer
+          example: 8
+        categoryId:
+          type: integer
+          example: 1
+        createdAt:
+          type: string
+          format: date-time
+        seller:
+          $ref: '#/components/schemas/PersonSummary'
+        category:
+          $ref: '#/components/schemas/Category'
+        bids:
+          type: array
+          items:
+            $ref: '#/components/schemas/Bid'
+
+    PersonSummary:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 8
+        name:
+          type: string
+          example: Listing User
+
+    BidRequest:
+      type: object
+      required: [amount]
+      properties:
+        amount:
+          type: number
+          exclusiveMinimum: 0
+          example: 150
+
+    Bid:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        amount:
+          type: string
+          example: '150'
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED, REJECTED]
+          example: PENDING
+        bidderId:
+          type: integer
+          example: 9
+        listingId:
+          type: integer
+          example: 2
+        createdAt:
+          type: string
+          format: date-time
+
+    WatchlistEntry:
+      type: object
+      properties:
+        userId:
+          type: integer
+          example: 9
+        listingId:
+          type: integer
+          example: 3
+        listing:
+          $ref: '#/components/schemas/Listing'
