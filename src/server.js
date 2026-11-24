@@ -1,4 +1,4 @@
-
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
@@ -24,10 +24,14 @@ app.use(morgan('tiny'));
 let specs;
 
 try {
-  specs = yaml.load(fs.readFileSync('./docs/openapi.yaml', 'utf8'));
+  const openApiPath = fileURLToPath(
+    new URL('../docs/openapi.yaml', import.meta.url)
+  );
+
+  specs = yaml.load(fs.readFileSync(openApiPath, 'utf8'));
 } catch (error) {
-  console.log('Failed to load OpenAPI specification', error);
-  process.exit(1);
+  console.error('Failed to load OpenAPI specification:', error);
+  throw error;
 }
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
