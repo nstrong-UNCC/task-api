@@ -10,6 +10,7 @@ import taskRoutes from './routes/taskRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import listingRoutes from './routes/listingRoutes.js';
+import watchlistRoutes from './routes/watchlistRoutes.js';
 
 // Initialize Express application
 const app = express();
@@ -40,6 +41,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/listings', listingRoutes);
+app.use('/api/watchlist', watchlistRoutes);
 app.use('/tasks', taskRoutes);
 
 // 404 Not Found Handler
